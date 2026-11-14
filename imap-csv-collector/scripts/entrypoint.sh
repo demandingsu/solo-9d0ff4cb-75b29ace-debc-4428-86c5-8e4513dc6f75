@@ -7,11 +7,12 @@ case "${1:-api}" in
     exec uvicorn app.main:app --host 0.0.0.0 --port 8000
     ;;
   imap)
-    exec python -m imap_server.cli serve \
-      --host 0.0.0.0 --port 10143 \
+    # 全局参数必须放在子命令之前，否则 argparse 报错
+    exec python -m imap_server.cli \
       --root "${MAIL_ROOT:-/srv/mail}" \
       --username "${MAIL_USER:-instrument@lab.local}" \
-      --password "${MAIL_PASSWORD:-labpass}"
+      --password "${MAIL_PASSWORD:-labpass}" \
+      serve --host 0.0.0.0 --port 10143
     ;;
   *)
     exec "$@"

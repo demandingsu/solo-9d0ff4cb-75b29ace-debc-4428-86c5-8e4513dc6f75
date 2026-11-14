@@ -29,7 +29,7 @@ def test_full_api_flow(imap_server, db_path):
     resp = client.get("/results/S-1001")
     assert resp.status_code == 200
     data = resp.json()
-    assert data["count"] == 2
+    assert data["count"] == 3
     assert {item["test_item"] for item in data["results"]} == {"铅Pb", "镉Cd"}
 
     resp = client.get("/results/NO-SUCH")

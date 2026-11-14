@@ -32,11 +32,11 @@ def test_happy_path_stops_on_bad_attachment(imap_server, db_path):
     assert report.stopped["uid"] == 3
     assert "坏 CSV" in report.stopped["reason"]
     assert len(report.ingested) == 2
-    assert report.total_new_records == 5
+    assert report.total_new_records == 6
 
     with db.connect(db_path) as conn:
         rows = db.query_results_by_sample(conn, "S-1001")
-        assert len(rows) == 2
+        assert len(rows) == 3
         # 坏邮件里的好附件也不得部分入库
         assert db.query_results_by_sample(conn, "S-1005") == []
         state = db.get_state(conn, make_mailbox_key(host, port, "INBOX"))

@@ -353,7 +353,8 @@ def _collect_locked(
                     for _, records in parsed
                     for record in records
                 ]
-                # 检测记录 + 投递识别 + UID 进度 同一事务原子提交
+                # 检测记录 + 投递识别 + UID 进度 同一事务原子提交；
+                # 同组已确认裁决在同一事务自动转为待复核（新结果到达即失效）
                 with db.transaction(conn):
                     db.insert_results(
                         conn, mailbox_key, message_id, uid, all_records
@@ -363,6 +364,13 @@ def _collect_locked(
                         uid, remote_validity,
                     )
                     db.upsert_state(conn, mailbox_key, remote_validity, uid)
+                    superseded = db.supersede_confirmed_adjudications(
+                        conn,
+                        {
+                            (record[0], record[1], record[3])
+                            for record in all_records
+                        },
+                    )
 
                 report.ingested.append(
                     {
@@ -372,6 +380,7 @@ def _collect_locked(
                         "attachments": [name for name, _ in attachments],
                         "record_count": len(all_records),
                         "attachment_digest": digest,
+                        "superseded_adjudications": superseded,
                     }
                 )
                 report.total_new_records += len(all_records)

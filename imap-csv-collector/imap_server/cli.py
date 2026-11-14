@@ -4,6 +4,7 @@
   serve                 启动 IMAP 服务
   seed-if-empty         邮箱为空时写入演示种子邮件
   list                  查看文件夹 UID 与 Message-ID
+  send                  投递一封全新邮件（新 Message-ID + 指定 CSV 附件）
   replace-uid           用修复后的 CSV 重写指定 UID 的邮件
   redeliver             以新 UID 重投指定邮件（附件原样）
   redeliver-modified    以新 UID 重投同 Message-ID 但替换附件内容的邮件
@@ -61,6 +62,19 @@ def cmd_list(args: argparse.Namespace) -> None:
             if part.get_filename()
         ]
         print(f"  UID={uid} Message-ID={_message_id(raw)} attachments={names}")
+
+
+def cmd_send(args: argparse.Namespace) -> None:
+    payload = _load_attachment_bytes(args.csv_path)
+    raw = mailbox.build_message(
+        message_id=args.message_id,
+        subject=args.subject,
+        sender=args.sender,
+        recipient="lab@lab.local",
+        attachments=[(args.attachment, payload)],
+    )
+    new_uid = mailbox.append_message(args.root, args.folder, raw)
+    print(f"已投递新邮件 Message-ID={args.message_id}，UID={new_uid}")
 
 
 def cmd_replace_uid(args: argparse.Namespace) -> None:
@@ -125,6 +139,14 @@ def build_parser() -> argparse.ArgumentParser:
         func=cmd_seed_if_empty
     )
     sub.add_parser("list", help="列出文件夹邮件").set_defaults(func=cmd_list)
+
+    p_send = sub.add_parser("send", help="投递一封全新邮件（新 Message-ID）")
+    p_send.add_argument("--message-id", required=True)
+    p_send.add_argument("--subject", default="仪器结果 补充批次")
+    p_send.add_argument("--sender", default="instrument-c@lab.local")
+    p_send.add_argument("--attachment", required=True, help="附件文件名")
+    p_send.add_argument("--csv-path", required=True, help="CSV 文件路径")
+    p_send.set_defaults(func=cmd_send)
 
     p_replace = sub.add_parser("replace-uid", help="重写指定 UID 邮件的附件")
     p_replace.add_argument("uid", type=int)
